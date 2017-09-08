@@ -1,6 +1,7 @@
-SRC = src/ae.c src/anet.c
+SRC = src/ae.c src/anet.c src/zmalloc.c
 OBJ = ${SRC:.c=.o}
-CFLAGS = -Wno-parentheses -Wno-switch-enum -Wno-unused-value
+INCDIRS=-I/Users/liangkui/Projects/c/liae-test/c_library_v2
+CFLAGS = -Wno-parentheses -Wno-switch-enum -Wno-unused-value ${INCDIRS}
 
 libae.a: $(OBJ)
 	$(AR) -rc $@ $(OBJ)
@@ -14,7 +15,10 @@ timer: example/timer.o libae.a
 echo: example/echo.o libae.a
 	$(CC) $^ -o $@
 
+stress: example/stress_test.o libae.a
+	$(CC) $^ -o $@
+
 clean:
-	rm -f $(OBJ) libae.a example/timer.o timer example/echo.o echo
+	rm -f $(OBJ) libae.a example/timer.o timer example/echo.o echo example/stress_test.o stress
 
 .PHONY: clean

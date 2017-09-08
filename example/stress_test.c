@@ -10,7 +10,7 @@
 #include "common/mavlink.h"
 
 
-#define UNIX_SOCK_TCP_TEST "/var/run/usb_proxy_svr_tcp_test"
+#define UNIX_SOCK_TCP_TEST "/Users/liangkui/Projects/c/liae-test/usb_proxy_svr_tcp_test"
 #define RECEIVE_BUFFER_SIZE 4096
 #define MAVLINKE_CHANNEL_INDEX 0
 
@@ -23,6 +23,8 @@ typedef struct buffer_point
 	uint32_t length;
 } buffer_point_t;
 
+int32_t counter = -1;
+
 void init_mavlink() 
 {
 	int chan = MAVLINKE_CHANNEL_INDEX;
@@ -30,14 +32,6 @@ void init_mavlink()
 	rx_status.msg_received = MAVLINK_FRAMING_INCOMPLETE;
 	rx_status.parse_state = MAVLINK_PARSE_STATE_IDLE;
 	memset((void*)&rx_msg, 0, sizeof(rx_msg));
-}
-
-void writeToHost(aeEventLoop *loop, int fd, void *clientdata, int mask)
-{
-	buffer_point_t *buffer_p = clientdata;
-	write(fd, buffer_p->buffer, buffer_p->length);
-	zfree(buffer_p->buffer);
-	zfree(buffer_p);
 }
 
 uint16_t encode_rc_channel(uint8_t chan, mavlink_rc_channels_t * rc_channels, uint8_t * sendbuffer)
@@ -56,18 +50,25 @@ void receive_rc_channel(buffer_point_t * buffer_p, aeEventLoop *loop, int fd)
 		uint8_t byte = buffer_p->buffer[i];
 		if (mavlink_parse_char(MAVLINKE_CHANNEL_INDEX, byte, &rx_msg, &rx_status))
 		{
-			printf("Received message with ID %d, sequence: %d from component %d of system %d",
+			printf("Received message with ID %d, sequence: %d from component %d of system %d\n",
 			       rx_msg.msgid, rx_msg.seq, rx_msg.compid, rx_msg.sysid);
 			if (rx_msg.msgid == MAVLINK_MSG_ID_RC_CHANNELS)
 			{
 				mavlink_rc_channels_t rc_channels;
 				mavlink_msg_rc_channels_decode(&rx_msg, &rc_channels);
+
+				if (counter-- == 0) {
+					aeDeleteFileEvent(loop, fd, AE_READABLE);
+					aeStop(loop);
+				}
 				int buffer_size = 1024;
-				uint8_t *buffer = (uint8_t*)zcalloc(sizeof(uint8_t) * buffer_size);
-				buffer_point_t *tx_buffer_p = (buffer_point_t *)zcalloc(sizeof(buffer_point_t));
+				uint8_t *buffer = (uint8_t*)malloc(sizeof(uint8_t) * buffer_size);
+				buffer_point_t *tx_buffer_p = (buffer_point_t *)malloc(sizeof(buffer_point_t));
 				tx_buffer_p->buffer = buffer;
 				tx_buffer_p->length = encode_rc_channel(MAVLINKE_CHANNEL_INDEX, &rc_channels, buffer);
-				aeCreateFileEvent(loop, fd, AE_WRITABLE, writeToHost, tx_buffer_p);
+				write(fd, buffer_p->buffer, buffer_p->length);	
+				free(tx_buffer_p->buffer);
+				free(tx_buffer_p);
 			}
 			rx_status.msg_received = MAVLINK_FRAMING_INCOMPLETE;
 			rx_status.parse_state = MAVLINK_PARSE_STATE_IDLE;
@@ -75,16 +76,16 @@ void receive_rc_channel(buffer_point_t * buffer_p, aeEventLoop *loop, int fd)
 		}
 		++i;
 	}
-	zfree(buffer_p->buffer);
-	zfree(buffer_p);
+	free(buffer_p->buffer);
+	free(buffer_p);
 }
 
 void readFromHost(aeEventLoop *loop, int fd, void *clientdata, int mask)
 {
 	int buffer_size = 1024;
-	uint8_t *buffer = (uint8_t *)zcalloc(sizeof(uint8_t) * buffer_size);
+	uint8_t *buffer = (uint8_t *)malloc(sizeof(uint8_t) * buffer_size);
 	int size = read(fd, buffer, buffer_size);
-	buffer_point_t *buffer_p = (buffer_point_t *)zcalloc(sizeof(buffer_point_t));
+	buffer_point_t *buffer_p = (buffer_point_t *)malloc(sizeof(buffer_point_t));
 	buffer_p->buffer = buffer;
 	buffer_p->length = size;
 	receive_rc_channel(buffer_p, loop, fd);
@@ -100,17 +101,31 @@ void acceptUnixHandler(aeEventLoop *loop, int fd, void *clientdata, int mask)
 	// set client socket non-block
 	anetNonBlock(NULL, client_fd);
 
+
 	// regist on message callback
-	int ret;
-	ret = aeCreateFileEvent(loop, client_fd, AE_READABLE, readFromHost, NULL);
+	int ret = aeCreateFileEvent(loop, client_fd, AE_READABLE, readFromHost, NULL);
 	assert(ret != AE_ERR);
+
+	mavlink_rc_channels_t  rc_channels;
+	int buffer_size = 1024;
+	uint8_t *buffer = (uint8_t*)malloc(sizeof(uint8_t) * buffer_size);
+	buffer_point_t *tx_buffer_p = (buffer_point_t *)malloc(sizeof(buffer_point_t));
+	tx_buffer_p->buffer = buffer;
+	tx_buffer_p->length = encode_rc_channel(MAVLINKE_CHANNEL_INDEX, &rc_channels, buffer);
+	printf("Accept Send size: %d\n", tx_buffer_p->length);
+	ret = write(client_fd, tx_buffer_p->buffer, tx_buffer_p->length);	
+	free(tx_buffer_p->buffer);
+	free(tx_buffer_p);
 }
 
 void runServer()
 {
 	int ipfd;
+	char error[256];
 	// create server socket
-	ipfd = anetUnixServer(NULL, UNIX_SOCK_TCP_TEST, 0, 5);
+	unlink(UNIX_SOCK_TCP_TEST);
+	ipfd = anetUnixServer(error, UNIX_SOCK_TCP_TEST, 0, 5);
+
 	assert(ipfd != ANET_ERR);
 
 	// create main event loop
@@ -131,6 +146,7 @@ void runServer()
 
 void runClient(int times)
 {
+	counter = times;
 	int ipfd = anetUnixNonBlockConnect(NULL, UNIX_SOCK_TCP_TEST);
 	assert(ipfd != ANET_ERR);
 
@@ -142,14 +158,6 @@ void runClient(int times)
 	int ret;
 	ret = aeCreateFileEvent(loop, ipfd, AE_READABLE, readFromHost, NULL);
 	assert(ret != AE_ERR);
-
-	mavlink_rc_channels_t  rc_channels;
-	int buffer_size = 1024;
-	uint8_t *buffer = (uint8_t*)zcalloc(sizeof(uint8_t) * buffer_size);
-	buffer_point_t *tx_buffer_p = (buffer_point_t *)zcalloc(sizeof(buffer_point_t));
-	tx_buffer_p->buffer = buffer;
-	tx_buffer_p->length = encode_rc_channel(MAVLINKE_CHANNEL_INDEX, &rc_channels, buffer);
-	aeCreateFileEvent(loop, ipfd, AE_WRITABLE, writeToHost, tx_buffer_p);
 
 	// start main loop
 	aeMain(loop);
