@@ -18,7 +18,10 @@ echo: example/echo.o libae.a
 stress: example/stress_test.o libae.a
 	$(CC) $^ -o $@
 
+udp_test: example/udp_test.o libae.a
+	$(CC) $^ -o $@
+
 clean:
-	rm -f $(OBJ) libae.a example/timer.o timer example/echo.o echo example/stress_test.o stress
+	rm -f $(OBJ) libae.a example/timer.o timer example/echo.o echo example/stress_test.o stress example/udp_test.o udp_test
 
 .PHONY: clean

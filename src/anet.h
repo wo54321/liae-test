@@ -39,7 +39,7 @@
 
 /* Flags used with certain functions. */
 #define ANET_NONE 0
-#define ANET_IP_ONLY (1<<0)
+#define ANET_IP_ONLY (1 << 0)
 
 #if defined(__sun) || defined(_AIX)
 #define AF_LOCAL AF_UNIX
@@ -77,4 +77,9 @@ int anetFormatAddr(char *fmt, size_t fmt_len, char *ip, int port);
 int anetFormatPeer(int fd, char *fmt, size_t fmt_len);
 int anetFormatSock(int fd, char *fmt, size_t fmt_len);
 
+int anetUnixUdpCreate(char *err, char *path);
+int anetUnixUdpConnect(char *err, int fd, char *server);
+int anetUdpCreate(char *err, int port);
+int anetUdpConnect(char *err, int local_port, char *remote_path, int remote_port);
+int anetUdpConnectSock(char *err, int local_port, struct sockaddr *remote);
 #endif
