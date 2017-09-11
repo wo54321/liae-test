@@ -10,7 +10,9 @@
 
 #include "common/mavlink.h"
 
-#define UNIX_SOCK_TCP_TEST "/Users/liangkui/Projects/c/liae-test/usb_proxy_svr_tcp_test"
+// #define UNIX_SOCK_TCP_TEST "/var/run/usb_proxy_svr_tcp_test"
+// #define UNIX_SOCK_TCP_TEST "/home/liangkui/unix_tcp_test"
+#define UNIX_SOCK_TCP_TEST "/Users/mac/unix_tcp_test"
 #define RECEIVE_BUFFER_SIZE 4096
 #define MAVLINKE_CHANNEL_INDEX 0
 
@@ -50,8 +52,8 @@ void receive_rc_channel(buffer_point_t *buffer_p, aeEventLoop *loop, int fd)
 		uint8_t byte = buffer_p->buffer[i];
 		if (mavlink_parse_char(MAVLINKE_CHANNEL_INDEX, byte, &rx_msg, &rx_status))
 		{
-			// printf("Received message with ID %d, sequence: %d from component %d of system %d\n",
-			//        rx_msg.msgid, rx_msg.seq, rx_msg.compid, rx_msg.sysid);
+			printf("Received message with ID %d, sequence: %d from component %d of system %d\n",
+			       rx_msg.msgid, rx_msg.seq, rx_msg.compid, rx_msg.sysid);
 			if (rx_msg.msgid == MAVLINK_MSG_ID_RC_CHANNELS)
 			{
 				mavlink_rc_channels_t rc_channels;
@@ -62,6 +64,7 @@ void receive_rc_channel(buffer_point_t *buffer_p, aeEventLoop *loop, int fd)
 					aeDeleteFileEvent(loop, fd, AE_READABLE);
 					aeStop(loop);
 					printf("Finished.\n");
+					return;
 				}
 				int buffer_size = 1024;
 				uint8_t *buffer = (uint8_t *)zmalloc(sizeof(uint8_t) * buffer_size);

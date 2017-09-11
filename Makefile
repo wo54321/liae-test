@@ -1,6 +1,7 @@
 SRC = src/ae.c src/anet.c src/zmalloc.c
 OBJ = ${SRC:.c=.o}
-INCDIRS=-I/Users/liangkui/Projects/c/liae-test/c_library_v2
+# INCDIRS=-I/home/liangkui/share/rk3036_dongle/external/rcdaemon/mavlink
+INCDIRS=-I/Volumes/share/rk3036_dongle/external/rcdaemon/mavlink
 CFLAGS = -Wno-parentheses -Wno-switch-enum -Wno-unused-value ${INCDIRS}
 
 libae.a: $(OBJ)
