@@ -1,3 +1,4 @@
+#include <stddef.h>
 #include "../src/anet.h"
 #include "channel_io.h"
 
@@ -10,6 +11,10 @@
 #define WIFI_UDP_SERVER_ADDR "192.168.42.1"
 #define WIFI_UDP_SERVER_PORT 14540
 #define WIFI_UDP_CLIENT_PORT 11178
+
+channel_io_t usb_channel;
+channel_io_t wifi_channel;
+channel_io_t internal_channel;
 
 static int32_t unix_sock_open(channel_io_t *channel, char *path)
 {
@@ -25,7 +30,7 @@ static int32_t unix_sock_open(channel_io_t *channel, char *path)
     channel->listen_fd = anetUnixServer(error, path, 0, 5);
     if (channel->listen_fd < 0)
     {
-        printf("error %s\n", error);
+        loge("error %s\n", error);
     }
     return channel->listen_fd;
 }
@@ -45,7 +50,7 @@ static int32_t udp_open(channel_io_t *channel, int32_t client_port, char *server
 
     if (channel->fd < 0)
     {
-        printf("error %s\n", error);
+        loge("error %s\n", error);
     }
     return channel->fd;
 }
@@ -227,3 +232,11 @@ channel_io_t internal_channel = {
     .forwad = NULL,
     .broadcast = internal_broadcast,
     .close = internal_close};
+
+
+channel_io_t * channels_io[] = {
+    &usb_channel,
+    &wifi_channel,
+    &internal_channel,
+};
+const uint32_t CHANNELS_NUMBER =  sizeof (channels_io) / sizeof (channels_io[0]);

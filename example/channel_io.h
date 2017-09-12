@@ -1,9 +1,19 @@
 #ifndef __CHANNEL_IO__
 #define __CHANNEL_IO__
 
-#include <stdlib.h>
-#include <unistd.h>
+#include <stdint.h>
 #include <stdbool.h>
+
+#ifdef __android__
+#define LOG_TAG "channe_io"
+#include <cutils/log.h>
+#define logi(fmt,  arg  ...) ALOGI(fmt, ##arg)
+#define loge(fmt,  arg  ...) ALOGE(fmt, ##arg)
+#elif defined(__linux__)
+#include <stdio.h>
+#define logi(fmt,  arg  ...) printf("Info: "fmt, ##arg)
+#define loge(fmt,  arg  ...) printf("Error: "fmt, ##arg)
+#endif
 
 #define MAX_CHANNELS_NO 3
 
@@ -30,14 +40,6 @@ typedef struct channel_io
     void (*close)();
 } channel_io_t;
 
-extern channel_io_t usb_channel;
-extern channel_io_t wifi_channel;
-extern channel_io_t internal_channel;
-
-channel_io_t * channels_io[] = {
-    &usb_channel,
-    &wifi_channel,
-    &internal_channel,
-};
-
+extern channel_io_t * channels_io[];
+extern const uint32_t CHANNELS_NUMBER;
 #endif

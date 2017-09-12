@@ -81,5 +81,5 @@ int anetUnixUdpCreate(char *err, char *path);
 int anetUnixUdpConnect(char *err, int fd, char *server);
 int anetUdpCreate(char *err, int port);
 int anetUdpConnect(char *err, int local_port, char *remote_path, int remote_port);
-int anetUdpConnectSock(char *err, int local_port, struct sockaddr *remote);
+
 #endif

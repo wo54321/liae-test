@@ -761,7 +761,7 @@ int anetUdpConnect(char *err, int local_port, char *remote_path, int remote_port
     return s;
 }
 
-int anetUdpConnectSock(char *err, int local_port, struct sockaddr *remote)
+int anetUdpConnectSock(char *err, int local_port, struct sockaddr_in *remote)
 {
     int s;
     if ((s = anetCreateSocket(err, AF_INET, SOCK_DGRAM)) == ANET_ERR)
@@ -785,7 +785,7 @@ int anetUdpConnectSock(char *err, int local_port, struct sockaddr *remote)
         return ANET_ERR;
     }
 
-    if (connect(s, remote, sizeof(struct sockaddr)) == -1)
+    if (connect(s, (struct sockaddr *)remote, sizeof(struct sockaddr)) == -1)
     {
         if (errno == EINPROGRESS)
             return s;

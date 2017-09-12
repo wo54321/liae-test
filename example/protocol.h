@@ -1,14 +1,17 @@
-#ifndef __PROTOCOL_H__
-#define __PROTOCOL_H__
+#ifndef __PROTOCOL_ABSTRACT_H__
+#define __PROTOCOL_ABSTRACT_H__
 
 #include <stdlib.h>
 #include "channel_io.h"
 
+#define MAX_PROTO_BUF_SIZE 1024
+
 typedef struct msg_packet 
 {
 	channel_io_t * channel;
-	uint8_t buf;
+	uint8_t * buf;
 	int32_t length;
+	void * packeted_msg;
 }msg_packet_t;
 
 /**
@@ -42,7 +45,7 @@ typedef struct protocol
 	/**
 	*	Handling the packet which is addressed to rcdaemon.
 	*/
-	void (* handle_rc_packet)(struct protocol * protocol, msg_packet_t * packet);
+	int32_t (* handle_rc_packet)(struct protocol * protocol, msg_packet_t * packet);
 
 	/**
 	*	Re-initial the interface, release resource.
